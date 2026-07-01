@@ -1,0 +1,458 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>工作手机业务诊断工具</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box;font-family:"Microsoft YaHei","PingFang SC",sans-serif}
+body{background:#f5f7fc;color:#151819;padding:20px}
+.container{max-width:920px;margin:0 auto}
+.header{background:#086AFE;color:#fff;padding:20px 30px;border-radius:10px 10px 0 0}
+.header h1{font-size:22px;font-weight:700}
+.header p{font-size:13px;opacity:.85;margin-top:4px}
+.card{background:#fff;border-radius:0 0 10px 10px;padding:24px 30px 30px;box-shadow:0 2px 12px rgba(8,106,254,.08)}
+.stage-nav{display:flex;gap:4px;padding:10px 0;flex-wrap:wrap}
+.stage-btn{flex:1;min-width:72px;padding:7px 4px;border:none;border-radius:6px;font-size:10px;font-weight:600;cursor:pointer;background:#e8effc;color:#086AFE;transition:all .2s}
+.stage-btn.active{background:#086AFE;color:#fff}
+.stage-btn.done{background:#c8e6c9;color:#2e7d32}
+.q-item{margin-bottom:18px;padding:14px 16px;border-radius:8px;background:#fafbfe;border:1px solid #e8effc}
+.q-label{font-size:14px;font-weight:600;color:#151819;margin-bottom:8px}
+.q-label .q-num{color:#086AFE;margin-right:4px}
+.q-detail{font-size:11px;color:#999;margin-bottom:8px}
+.options{display:flex;flex-direction:column;gap:5px}
+.option{display:flex;align-items:center;gap:10px;padding:8px 14px;border-radius:6px;border:1.5px solid #e0e5ef;cursor:pointer;transition:all .1s}
+.option:hover{border-color:#086AFE;background:#f0f4fe}
+.option.selected{border-color:#086AFE;background:#e8effc}
+.option input{display:none}
+.option .letter{width:22px;height:22px;border-radius:50%;background:#e0e5ef;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:#4a4a4a;flex-shrink:0}
+.option.selected .letter{background:#086AFE;color:#fff}
+.option .text{font-size:13px;color:#333}
+.nav-bar{display:flex;justify-content:space-between;margin-top:20px;gap:12px;align-items:center}
+.btn{padding:10px 24px;border:none;border-radius:8px;font-size:14px;font-weight:600;cursor:pointer}
+.btn-primary{background:#086AFE;color:#fff}
+.btn-primary:hover{background:#0655cc}
+.btn-secondary{background:#e8effc;color:#086AFE}
+.btn-secondary:hover{background:#d0dffc}
+.btn:disabled{opacity:.4;cursor:not-allowed}
+.progress-bar{height:4px;background:#e0e5ef;border-radius:2px;margin:0 0 12px;overflow:hidden}
+.progress-fill{height:100%;background:#086AFE;border-radius:2px;transition:width .4s}
+.result-grid{display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:8px;margin-bottom:16px}
+@media(max-width:700px){.result-grid{grid-template-columns:1fr 1fr}}
+.result-card{border-radius:8px;padding:12px;text-align:center}
+.result-card.green{background:#e8f5e9;border:1px solid #a5d6a7}
+.result-card.yellow{background:#fff8e1;border:1px solid #ffe082}
+.result-card.red{background:#ffebee;border:1px solid #ef9a9a}
+.result-card .score{font-size:22px;font-weight:700;margin:2px 0}
+.result-card .label{font-size:11px;color:#666}
+.result-card .status{font-size:12px;font-weight:600;display:inline-block;padding:2px 8px;border-radius:10px;margin-top:2px}
+.result-card.green .status{background:#a5d6a7;color:#1b5e20}
+.result-card.yellow .status{background:#ffe082;color:#e65100}
+.result-card.red .status{background:#ef9a9a;color:#b71c1c}
+.recommend-item{border:1px solid #e0e5ef;border-radius:8px;padding:12px 14px;margin-bottom:8px;display:flex;align-items:flex-start;gap:10px}
+.recommend-item .checkbox-col{padding-top:2px}
+.recommend-item .checkbox-col input{width:16px;height:16px;cursor:pointer}
+.recommend-item .content-col{flex:1}
+.rec-pri{display:inline-block;padding:1px 8px;border-radius:4px;font-size:10px;font-weight:700;color:#fff;margin-bottom:4px}
+.rec-pri.P0{background:#c00}
+.rec-pri.P1{background:#e86c00}
+.rec-pri.P2{background:#086AFE}
+.rec-pri.管理{background:#666}
+.recommend-item h4{font-size:13px;margin-bottom:2px}
+.recommend-item .rec-value{font-size:11px;color:#086AFE;font-weight:600;margin-bottom:2px}
+.recommend-item .rec-desc{font-size:11px;color:#666;line-height:1.5}
+.recommend-item .rec-source{font-size:10px;color:#aaa;margin-top:4px}
+.hidden{display:none}
+.intro-box{text-align:center;padding:30px 20px}
+.intro-box .icon{font-size:40px;margin-bottom:12px}
+.intro-box h2{font-size:20px;margin-bottom:6px}
+.intro-box p{font-size:13px;color:#666;line-height:1.8;max-width:480px;margin:0 auto 20px}
+.intro-steps{display:flex;gap:16px;justify-content:center;margin-bottom:24px;flex-wrap:wrap}
+.intro-step{flex:1;min-width:130px;max-width:180px;padding:14px;background:#f5f7fc;border-radius:8px}
+.intro-step .num{width:26px;height:26px;border-radius:50%;background:#086AFE;color:#fff;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;margin:0 auto 6px}
+.intro-step h4{font-size:13px;margin-bottom:2px}
+.intro-step p{font-size:11px;color:#888;margin:0}
+.footer{text-align:center;font-size:11px;color:#aaa;margin-top:30px;padding:12px}
+.result-actions{display:flex;gap:10px;margin-top:16px;flex-wrap:wrap}
+#suggestionList table{width:100%;border-collapse:collapse;font-size:12px;margin-top:12px}
+#suggestionList th{background:#086AFE;color:#fff;padding:8px 10px;text-align:left;font-weight:600}
+#suggestionList td{padding:8px 10px;border-bottom:1px solid #e0e5ef;vertical-align:top;line-height:1.5}
+#suggestionList tr:nth-child(even){background:#fafbfe}
+@media print{body{background:#fff;padding:0}.header{border-radius:0}.card{box-shadow:none}.btn,.result-actions .btn{display:none}.stage-nav{display:none}.nav-bar{display:none}}
+</style>
+</head>
+<body>
+<div class="container" id="app">
+<div class="header"><h1>📋 工作手机业务诊断工具</h1><p>8大业务板块 · 20+道诊断题 · 自动生成定开建议清单</p></div>
+<div class="card">
+
+<!-- Intro -->
+<div id="introScreen">
+<div class="intro-box">
+<div class="icon">🔍</div>
+<h2>入店诊断三步走</h2>
+<p>面向门店/厂端管理层，通过结构化访谈快速定位工作手机在业务流程中的痛点，自动生成定开功能建议清单。</p>
+<div class="intro-steps">
+<div class="intro-step"><div class="num">1</div><h4>逐板块访谈</h4><p>按8大业务板块逐一询问现状</p></div>
+<div class="intro-step"><div class="num">2</div><h4>自动评分</h4><p>系统自动打分并识别薄弱环节</p></div>
+<div class="intro-step"><div class="num">3</div><h4>生成建议清单</h4><p>勾选需要的功能，生成建议清单</p></div>
+</div>
+<button class="btn btn-primary" onclick="start()">开始诊断 →</button>
+<p style="margin-top:10px;font-size:11px;color:#aaa">约需15-20分钟 · 全程离线运行</p>
+</div></div>
+
+<!-- Questionnaire -->
+<div id="questionnaire" class="hidden">
+<div class="progress-bar"><div class="progress-fill" id="progressFill" style="width:0%"></div></div>
+<div class="stage-nav" id="stageNav"></div>
+<div id="stageTitle" style="font-size:18px;color:#086AFE;font-weight:700;margin-bottom:2px"></div>
+<p class="q-detail" id="stageHint"></p>
+<div id="questions"></div>
+<div class="nav-bar">
+<button class="btn btn-secondary" id="prevBtn" onclick="prevStage()">← 上一步</button>
+<span id="progressText" style="font-size:12px;color:#888">1 / 8</span>
+<button class="btn btn-primary" id="nextBtn" onclick="nextStage()">下一步 →</button>
+</div></div>
+
+<!-- Result -->
+<div id="result" class="hidden">
+<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
+<h2 style="color:#086AFE;font-size:18px">📊 诊断结果与建议清单</h2>
+</div>
+<p class="q-detail" id="reportMeta" style="margin-bottom:12px"></p>
+<div id="scoreSummary"></div>
+<h3 style="font-size:15px;margin:16px 0 10px">✅ 勾选需要的定开功能，生成建议清单</h3>
+<div id="recommendations"></div>
+<div class="result-actions">
+<button class="btn btn-primary" onclick="generateList()">📋 生成建议清单</button>
+<button class="btn btn-secondary" onclick="restart()">🔄 重新诊断</button>
+</div>
+<div id="suggestionList" class="hidden" style="margin-top:20px;border-top:2px solid #086AFE;padding-top:16px">
+<h3 style="font-size:16px;color:#086AFE;margin-bottom:8px">📋 工作手机定开功能建议清单</h3>
+<p style="font-size:12px;color:#666;margin-bottom:10px" id="listMeta"></p>
+<div id="listTable"></div>
+<button class="btn btn-secondary" style="margin-top:12px" onclick="window.print()">🖨️ 打印清单</button>
+</div>
+</div>
+
+</div>
+<div class="footer">离线诊断工具 v1.1</div>
+</div>
+
+<script>
+// ====== 诊断数据 ======
+const stages = [
+  {id:0, name:"①基础对接", hint:"组织、权限、AI、知识库对接"},
+  {id:1, name:"②线索管理", hint:"同步、排重、保护、末端处理"},
+  {id:2, name:"③虚拟号", hint:"号池、回显、分配、回收", condition:"virtual"},
+  {id:3, name:"④外呼管理", hint:"白名单、接通率、号卡检测"},
+  {id:4, name:"⑤通话辅助", hint:"弹屏、岗位配置、建档"},
+  {id:5, name:"⑥通讯录与跟进", hint:"跟进、名片、跳转、详情"},
+  {id:6, name:"⑦微信运营", hint:"关联、加微、悬浮窗、素材", condition:"wechat"},
+  {id:7, name:"⑧移动快捷功能", hint:"消息中心、小组件、录音", condition:"mobile"}
+];
+
+// Question data: {s:stage, id:unique, q:question, a:[{k, v, t}], n/a?:bool, skip_if?:{id,value}, 
+//  rec:{name,value,desc,dev,brands,section,pri}}
+const Q = [
+// ====== ①基础对接 ======
+{s:0, id:"0_1", q:"员工入职后，员工账户是如何创建的？",
+ a:[{k:"A",v:3,t:"自动同步，无需人工操作"},{k:"B",v:1,t:"需要手动在后台创建"},{k:"C",v:0,t:"员工自己注册，管理员再审批"}],
+ rec:{name:"组织架构自动同步",value:"组织架构、人员岗位数据自动同步，无需人工维护通讯录",desc:"对接品牌组织管理系统，自动同步部门架构、人员名单、岗位职级等信息",dev:"组织架构+账户信息自动同步",brands:"东风本田/奕派/岚图/猛士/阿维塔",section:"基础对接",pri:"P2"}},
+{s:0, id:"0_2", q:"不同岗位（邀约/销售/经理）看到的数据范围是否做了区分？",
+ a:[{k:"A",v:3,t:"已按角色配置好权限"},{k:"B",v:1,t:"做了简单区分但不完善"},{k:"C",v:0,t:"所有人都能看到全部数据"}],
+ rec:{name:"分角色数据权限自动同步",value:"厂端数据权限自动映射，不同角色各看各的数据",desc:"厂端数据权限配置同步至工作手机，控制不同角色的数据可见范围",dev:"分角色数据权限自动同步",brands:"阿维塔",section:"基础对接",pri:"P2"}},
+{s:0, id:"0_3", q:"话术和产品FAQ，一线员工在手机上方便查到吗？",
+ a:[{k:"A",v:3,t:"在手机端可直接查询"},{k:"B",v:1,t:"需登录外部系统或翻纸质文件"},{k:"C",v:0,t:"没有系统化知识库，靠个人经验"}],
+ rec:{name:"知识库对接",value:"话术FAQ直达手机端，查话术不用退系统",desc:"对接品牌知识库，手机端直接查询标准话术、FAQ、政策文件",dev:"知识库对接",brands:"岚图",section:"基础对接",pri:"P2"}},
+
+// ====== ②线索管理 ======
+{s:1, id:"1_1", q:"新线索从厂端系统下发到工作手机，延时大概多久？",
+ a:[{k:"A",v:3,t:"实时推送，<30秒"},{k:"B",v:1,t:"需要手动刷新才出现"},{k:"C",v:0,t:"每天定时导表同步"}],
+ rec:{name:"线索自动同步CRM",value:"厂端线索实时推送工作手机，无需切系统查资料",desc:"厂端CRM线索实时同步推送，销售顾问接通前即可看到客户信息",dev:"线索自动同步CRM",brands:"东风本田/阿维塔",section:"线索管理",pri:"P2"}},
+{s:1, id:"1_2", q:"同一客户在不同渠道留资后，系统会重复创建线索吗？",
+ a:[{k:"A",v:3,t:"有排重机制，不会重复"},{k:"B",v:1,t:"偶尔有重复但影响不大"},{k:"C",v:0,t:"经常重复，有撞单纠纷"}],
+ rec:{name:"线索按ID排重",value:"基于线索ID排重，多渠道留资不撞单",desc:"基于线索ID区分，不同渠道留资不合并不重复；支持无手机号仅微信号建档",dev:"线索按ID排重",brands:"东风本田/岚图",section:"线索管理",pri:"P1"}},
+{s:1, id:"1_3", q:"多次拨打未接通的线索，目前怎么处理的？",
+ a:[{k:"A",v:3,t:"系统自动标记战败"},{k:"B",v:1,t:"销售顾问每周手动清理"},{k:"C",v:0,t:"一直堆在列表里没人管"}],
+ rec:{name:"未接通自动战败",value:"多次拨打未接通自动战败，释放精力跟有效线索",desc:"同一号码多次未接通，系统自动标记战败，释放跟进列表空间",dev:"未接通自动战败",brands:"深蓝",section:"线索管理",pri:"P1"}},
+{s:1, id:"1_4", q:"员工离职后，其名下线索是如何处理的？",
+ a:[{k:"A",v:3,t:"系统自动归属门店待分配"},{k:"B",v:1,t:"经理手动逐条重新分配"},{k:"C",v:0,t:"没人管，基本丢失"}],
+ rec:{name:"人员离职线索释放至门店",value:"离职员工线索自动归属门店，客户资产不跟人走",desc:"离职后线索自动保留在门店层级，可重新分配给其他跟进人",dev:"人员离职线索释放至门店",brands:"奕派",section:"线索管理",pri:"P1"}},
+
+// ====== ③虚拟号 - 先问是否使用 ======
+{s:2, id:"2_gate", q:"目前外呼流程中是否使用了虚拟号（小号）？",
+ a:[{k:"Y",v:0,t:"是，正在使用虚拟号外呼"},{k:"N",v:0,t:"否，仅使用实体SIM卡"}], isGate:true},
+{s:2, id:"2_1", q:"目前虚拟号是谁管理的？怎么分配？", condition:"virtual",
+ a:[{k:"A",v:3,t:"在后台自助管理"},{k:"B",v:1,t:"找运营商办理，线下分配"},{k:"C",v:0,t:"员工自己办卡报销"}],
+ rec:{name:"虚拟号池后台管理",value:"虚拟号批量导入/分配/回收，无需运营商人工处理",desc:"后台自助管理虚拟号，支持批量导入、分配、回收、状态查看",dev:"虚拟号池后台管理",brands:"岚图",section:"虚拟号",pri:"P0"}},
+{s:2, id:"2_2", q:"客户回拨虚拟号时，能直接找到原跟进人吗？", condition:"virtual",
+ a:[{k:"A",v:3,t:"系统自动匹配线索并弹屏"},{k:"B",v:1,t:"能接到但不知道是谁"},{k:"C",v:0,t:"客户说打不通或找不到人"}],
+ rec:{name:"虚拟号回拨至真实号",value:"客户回拨虚拟号自动匹配线索并弹屏，回电不漏单",desc:"客户回拨虚拟号时自动识别被叫号码并匹配线索弹屏展示",dev:"虚拟号回拨至真实号",brands:"阿维塔",section:"虚拟号",pri:"P0"}},
+{s:2, id:"2_3", q:"虚拟号外呼时，客户手机上显示什么号码？", condition:"virtual",
+ a:[{k:"A",v:3,t:"员工真实手机号，能回拨"},{k:"B",v:1,t:"虚拟号码，不可回拨"},{k:"C",v:0,t:"随机号码，被标记为骚扰"}],
+ rec:{name:"虚拟号外呼真号回显",value:"虚拟号外呼显示员工真实号码，客户回拨不跑单",desc:"客户来电显示员工真实手机号而非虚拟号，回拨直接找到原跟进人",dev:"虚拟号外呼真号回显",brands:"岚图",section:"虚拟号",pri:"P0"}},
+{s:2, id:"2_4", q:"目前虚拟号使用情况透明吗？有管理看板吗？", condition:"virtual",
+ a:[{k:"A",v:3,t:"有看板，实时掌握"},{k:"B",v:1,t:"大概知道但没精确数据"},{k:"C",v:0,t:"不清楚，缺号了才找运营商"}],
+ rec:{name:"号池管理看板",value:"多维度展示号池使用率和空闲量，资源分布一目了然",desc:"按区域/城市/门店展示号码使用率、空闲量、异常状态",dev:"号池管理看板",brands:"岚图",section:"虚拟号",pri:"P0"}},
+{s:2, id:"2_5", q:"员工离职后，虚拟号能否自动回收？", condition:"virtual",
+ a:[{k:"A",v:3,t:"系统自动回收"},{k:"B",v:1,t:"需人工联系运营商回收"},{k:"C",v:0,t:"没人管，号码浪费"}],
+ rec:{name:"离职自动解绑虚拟号",value:"员工离职自动解绑回收虚拟号，零人工干预",desc:"系统自动检测离职并解绑虚拟号回收至号池",dev:"离职自动解绑虚拟号",brands:"岚图",section:"虚拟号",pri:"P0"}},
+
+// ====== ④外呼管理 ======
+{s:3, id:"3_1", q:"外呼总接通率大概多少？低于目标时会自动提醒吗？",
+ a:[{k:"A",v:3,t:"系统自动预警，员工能收到"},{k:"B",v:1,t:"经理自己看后台发现"},{k:"C",v:0,t:"没人关注接通率"}],
+ rec:{name:"接通率阈值提醒",value:"接通率低于阈值自动提醒，帮助员工关注外呼质量",desc:"接通率低于设定阈值时系统自动推送提醒，及时纠偏",dev:"接通率阈值提醒",brands:"阿维塔",section:"外呼管理",pri:"P1"}},
+{s:3, id:"3_2", q:"是否关注过外呼号码被标记为骚扰电话的情况？",
+ a:[{k:"A",v:3,t:"有定期检测机制"},{k:"B",v:1,t:"个别员工反馈过但没系统查"},{k:"C",v:0,t:"没关注过"}],
+ rec:{name:"外呼号卡标记查询",value:"定期检查号卡健康度，发现被标记号卡",desc:"批量查询号卡在各服务商的标记情况，评估号码健康度",dev:"外呼号卡标记查询",brands:"深蓝",section:"外呼管理",pri:"P1"}},
+
+// ====== ⑤通话辅助 ======
+{s:4, id:"4_1", q:"来电/去电时，手机上能看到客户的哪些信息？",
+ a:[{k:"A",v:3,t:"完整信息：姓名/车型/历史/话术"},{k:"B",v:1,t:"基本信息：姓名+号码"},{k:"C",v:0,t:"仅显示号码，看不出是谁"}],
+ rec:{name:"电话弹屏显示客户详细方案",value:"来去电自动弹屏，展示客户信息+沟通记录+建议话术",desc:"自动弹出客户资料卡片，展示姓名/车型/最近沟通记录/建议话术",dev:"电话弹屏显示客户详细方案",brands:"岚图/猛士",section:"通话辅助",pri:"P1"}},
+{s:4, id:"4_2", q:"不同岗位人员看到的弹屏信息是否需要区分？",
+ a:[{k:"A",v:3,t:"已经按岗位区分了"},{k:"B",v:1,t:"想过但没实现"},{k:"C",v:0,t:"不需要区分"}],
+ rec:{name:"电话弹屏分角色岗位差异化配置",value:"不同岗位角色配置不同的弹屏信息字段，按需展示",desc:"邀约专员/销售/经理各自看到不同的弹屏字段，只看自己需要的",dev:"电话弹屏分角色岗位差异化配置",brands:"奕派",section:"通话辅助",pri:"P1"}},
+{s:4, id:"4_3", q:"陌生号码来电后，你们是怎么建档的？",
+ a:[{k:"A",v:3,t:"系统自动弹屏跳转新建线索"},{k:"B",v:1,t:"手动退出通话界面去新建"},{k:"C",v:0,t:"不管，挂掉就算了"}],
+ rec:{name:"陌生号码快速建档线索",value:"陌生号码来电自动跳转新建线索页，快速建档",desc:"陌生号码来电去电自动弹屏跳转新建线索，自动填入号码",dev:"陌生号码快速建档线索",brands:"奕派/阿维塔",section:"通话辅助",pri:"P2"}},
+
+// ====== ⑥通讯录与跟进 ======
+{s:5, id:"5_1", q:"通话结束后，跟进记录怎么填写的？",
+ a:[{k:"A",v:3,t:"挂机自动弹出跟进页，立即填写"},{k:"B",v:1,t:"自己去找跟进入口填写"},{k:"C",v:0,t:"忙完再统一补写"}],
+ rec:{name:"挂断弹屏关联CRM跟进",value:"挂机自动弹出跟进界面，可立即填写通话内容和客户意向",desc:"挂断后系统自动弹出CRM跟进填写页，避免忘记写跟进",dev:"挂断弹屏关联CRM跟进",brands:"岚图/猛士/东风本田/奕派",section:"通讯录与跟进",pri:"P2"}},
+{s:5, id:"5_2", q:"通讯录联系人卡片上能看到客户哪些信息？",
+ a:[{k:"A",v:3,t:"能看车型/城市/标签/一键加微信"},{k:"B",v:1,t:"仅姓名和手机号"},{k:"C",v:0,t:"没什么信息"}],
+ rec:{name:"通讯录名片功能增强",value:"通讯录名片展示车型/城市/线索标签，支持一键加微信",desc:"联系人卡片增加车型/城市/线索级别标签和加微信按钮",dev:"通讯录名片功能增强",brands:"东风本田/奕派/岚图",section:"通讯录与跟进",pri:"P2"}},
+{s:5, id:"5_3", q:"在通讯录中新建客户后，能同步到CRM线索系统吗？",
+ a:[{k:"A",v:3,t:"自动同步，不用重复操作"},{k:"B",v:1,t:"需要手动再次录入"},{k:"C",v:0,t:"不同步，各自独立"}],
+ rec:{name:"工作手机建客同步CRM建客",value:"新建客户自动同步线索",desc:"通讯录中新建客户后自动在厂端线索系统同步创建对应线索",dev:"工作手机建客同步CRM建客",brands:"东风本田",section:"通讯录与跟进",pri:"P2"}},
+
+// ====== ⑦微信运营 ======
+{s:6, id:"6_gate", q:"业务流程中是否涉及微信与客户沟通？",
+ a:[{k:"Y",v:0,t:"是，销售顾问会用微信联系客户"},{k:"N",v:0,t:"否，不使用微信沟通"}], isGate:true},
+{s:6, id:"6_1", q:"销售顾问加客户微信后，微信和CRM线索能关联上吗？", condition:"wechat",
+ a:[{k:"A",v:3,t:"系统自动关联，聊天可追溯"},{k:"B",v:1,t:"靠销售顾问手动备注"},{k:"C",v:0,t:"不关联，各自独立"}],
+ rec:{name:"微信浮窗快捷关联线索",value:"加好友后系统自动关联CRM线索，微信聊天记录可追溯",desc:"搜索手机号加好友后自动关联CRM线索，微信聊天可追溯",dev:"微信浮窗快捷关联线索",brands:"岚图",section:"微信运营",pri:"P2"}},
+{s:6, id:"6_2", q:"销售顾问微信聊客户时，要看客户资料怎么办？", condition:"wechat",
+ a:[{k:"A",v:3,t:"微信上有悬浮窗直接查看"},{k:"B",v:1,t:"退出微信去CRM查"},{k:"C",v:0,t:"凭记忆，不查了"}],
+ rec:{name:"微信私聊悬浮窗增加跳转客户详情",value:"微信私聊时悬浮展示客户信息卡片，边聊边看资料",desc:"微信聊天时手机悬浮显示客户信息卡片，不切屏查看",dev:"微信私聊悬浮窗增加跳转客户详情",brands:"东风本田/阿维塔",section:"微信运营",pri:"P2"}},
+{s:6, id:"6_3", q:"CRM APP中有没有快速加微信的入口？", condition:"wechat",
+ a:[{k:"A",v:3,t:"有，点击按钮自动加微"},{k:"B",v:1,t:"需要手动搜索或扫码"},{k:"C",v:0,t:"没有在CRM中加微的习惯"}],
+ rec:{name:"CRM APP增加自动加微信按钮",value:"APP内点击加微信自动执行，提升加微效率",desc:"CRM APP中点击加微信按钮自动执行添加好友操作",dev:"CRM APP增加自动加微信按钮",brands:"东风本田",section:"微信运营",pri:"P2"}},
+
+// ====== ⑧移动快捷功能 ======
+{s:7, id:"7_gate", q:"接待或试驾场景是否通过工作手机进行录音？",
+ a:[{k:"Y",v:0,t:"是，使用工作手机录音"},{k:"N",v:0,t:"否，不录音或用其他设备"}], isGate:true},
+{s:7, id:"7_1", q:"销售顾问每天查看待办任务的习惯如何？",
+ a:[{k:"A",v:3,t:"桌面小组件直接看，不用打开APP"},{k:"B",v:1,t:"每天打开APP看2-3次"},{k:"C",v:0,t:"经常忘了看"}],
+ rec:{name:"分角色业务数据桌面小组件",value:"桌面小组件展示待办/通话量/跟进数，点击直达功能页",desc:"手机桌面添加工作台小组件，直接在桌面查看今日待办和关键指标",dev:"分角色业务数据桌面小组件",brands:"东风本田/岚图/深蓝",section:"移动快捷功能",pri:"P2"}},
+{s:7, id:"7_2", q:"现场接待或试驾需要录音时，方便启动吗？", condition:"mobile",
+ a:[{k:"A",v:3,t:"一键启动录音，操作很方便"},{k:"B",v:1,t:"需要打开APP找到录音功能"},{k:"C",v:0,t:"没有录音习惯"}],
+ rec:{name:"录音场景自动标签",value:"录音自动标记场景标签，点击可跳转对应客户线索",desc:"接待/试驾录音自动标记场景标签并关联客户线索",dev:"录音场景自动标签",brands:"岚图",section:"移动快捷功能",pri:"P2"}},
+{s:7, id:"7_3", q:"消息通知会不会干扰通话？",
+ a:[{k:"A",v:3,t:"消息独立管理，通话时不打扰"},{k:"B",v:1,t:"偶尔有干扰但不严重"},{k:"C",v:0,t:"经常被消息提醒打断通话"}],
+ rec:{name:"消息中心模块(独立APP)",value:"消息按类型单独控制响铃，来电去电自动免打扰",desc:"消息独立APP管理，不同类型设置不同响铃，通话时自动静音",dev:"消息中心模块(独立APP)",brands:"岚图/深蓝",section:"移动快捷功能",pri:"P2"}},
+];
+
+// ====== APP ======
+let state = {stage:0, answers:{}};
+let gated = {virtual:false, wechat:false, mobile:false};
+
+function start(){
+  document.getElementById('introScreen').classList.add('hidden');
+  document.getElementById('questionnaire').classList.remove('hidden');
+  loadStage(0);
+}
+function restart(){
+  state={stage:0,answers:{}}; gated={virtual:false,wechat:false,mobile:false};
+  document.getElementById('result').classList.add('hidden');
+  document.getElementById('introScreen').classList.remove('hidden');
+}
+
+function getQs(sid){
+  return Q.filter(q=>q.s===sid);
+}
+
+function loadStage(si){
+  state.stage=si;
+  let allQs = getQs(si);
+  let visibleQs = allQs.filter(q=>{
+    if(q.isGate) return true;
+    if(q.condition==='virtual') return gated.virtual;
+    if(q.condition==='wechat') return gated.wechat;
+    if(q.condition==='mobile') return gated.mobile;
+    return true;
+  });
+  
+  // Update nav
+  let navHTML = '';
+  stages.forEach((s,i)=>{
+    let cls='stage-btn';
+    if(i==si) cls+=' active';
+    else {
+      let done=true;
+      getQs(i).forEach(q=>{
+        if(!q.isGate && state.answers[q.id]!==undefined) done=done&&true;
+      });
+      if(done && i<si) cls+=' done';
+    }
+    navHTML+=`<button class="${cls}" onclick="goStage(${i})">${s.name}</button>`;
+  });
+  document.getElementById('stageNav').innerHTML = navHTML;
+  
+  document.getElementById('stageTitle').textContent = stages[si].name;
+  document.getElementById('stageHint').textContent = stages[si].hint;
+  document.getElementById('progressText').textContent = `${si+1}/${stages.length}`;
+  document.getElementById('progressFill').style.width = `${((si+1)/stages.length)*100}%`;
+  
+  let html='';
+  visibleQs.forEach(q=>{
+    let sel = state.answers[q.id]||'';
+    html+=`<div class="q-item"><div class="q-label"><span class="q-num">Q${q.id}</span>${q.q}</div><div class="options">`;
+    q.a.forEach(o=>{
+      let s=sel==o.k?' selected':'';
+      html+=`<label class="option${s}" data-qid="${q.id}" data-key="${o.k}">
+        <input type="radio" name="q_${q.id}" value="${o.k}" ${sel==o.k?'checked':''} onchange="selOpt(this)">
+        <span class="letter">${o.k}</span><span class="text">${o.t}</span></label>`;
+    });
+    html+='</div></div>';
+  });
+  document.getElementById('questions').innerHTML = html;
+  
+  document.getElementById('prevBtn').disabled=(si==0);
+  document.getElementById('nextBtn').textContent=(si==stages.length-1)?'查看结果 →':'下一步 →';
+}
+
+function selOpt(input){
+  let label=input.closest('.option');
+  label.closest('.options').querySelectorAll('.option').forEach(el=>el.classList.remove('selected'));
+  label.classList.add('selected');
+  let qid=label.dataset.qid;
+  let key=label.dataset.key;
+  state.answers[qid]=key;
+  // Handle gate questions
+  if(qid==='2_gate') gated.virtual=(key==='Y');
+  if(qid==='6_gate') gated.wechat=(key==='Y');
+  if(qid==='7_gate') gated.mobile=(key==='Y');
+  // Reload if gate changed
+  if(['2_gate','6_gate','7_gate'].includes(qid)) loadStage(state.stage);
+  else loadStage(state.stage);
+}
+
+function goStage(i){loadStage(i);}
+function prevStage(){if(state.stage>0)loadStage(state.stage-1);}
+function nextStage(){
+  if(state.stage<stages.length-1) loadStage(state.stage+1);
+  else showResult();
+}
+
+function showResult(){
+  document.getElementById('questionnaire').classList.add('hidden');
+  document.getElementById('result').classList.remove('hidden');
+  
+  // Score calculation
+  let sScores={}, sMax={};
+  stages.forEach(s=>{sScores[s.id]=0;sMax[s.id]=0;});
+  let recs=[];
+  
+  Q.forEach(q=>{
+    if(q.isGate) return;
+    if(q.condition==='virtual'&&!gated.virtual) return;
+    if(q.condition==='wechat'&&!gated.wechat) return;
+    if(q.condition==='mobile'&&!gated.mobile) return;
+    let ans=state.answers[q.id];
+    let opt=q.a.find(x=>x.k==ans);
+    let score=opt?opt.v:0;
+    sScores[q.s]+=score; sMax[q.s]+=3;
+    if(score<=1 && q.rec && ans && opt && opt.v<=1){
+      recs.push({...q.rec, qid:q.id, score:score});
+    }
+  });
+  
+  let total=Object.values(sScores).reduce((a,b)=>a+b,0);
+  let maxT=Object.values(sMax).reduce((a,b)=>a+b,0);
+  let pct=Math.round(total/maxT*100);
+  
+  // Score grid
+  let html='<div class="result-grid">';
+  stages.forEach(s=>{
+    let sc=sScores[s.id]||0, mx=sMax[s.id]||1;
+    let per=mx>0?sc/mx:1;
+    let color=per>=0.75?'green':(per>=0.4?'yellow':'red');
+    let status=per>=0.75?'良好':(per>=0.4?'需优化':'薄弱');
+    if(s.id===2&&!gated.virtual){color='green';status='未使用';}
+    if(s.id===6&&!gated.wechat){color='green';status='未涉及';}
+    if(s.id===7&&!gated.mobile){color='green';status='未涉及';}
+    html+=`<div class="result-card ${color}"><div class="label">${s.name}</div><div class="score">${sc}/${mx}</div><div class="status">${status}</div></div>`;
+  });
+  html+='</div>';
+  
+  let oc=pct>=75?'green':(pct>=40?'yellow':'red');
+  let os=pct>=75?'整体良好，存在部分可优化点':(pct>=40?'存在需关注的薄弱环节':'多个业务板块存在明显断点');
+  html+=`<div class="result-card ${oc}" style="display:flex;align-items:center;justify-content:space-between;padding:10px 16px;margin-bottom:8px">
+    <div><strong style="font-size:15px">总体健康度</strong><br><span style="font-size:11px;color:#666">${os}</span></div>
+    <div style="text-align:right"><span style="font-size:24px;font-weight:700">${total}</span><span style="font-size:14px;color:#888">/${maxT}</span><br><span style="font-size:11px;color:#666">${pct}%</span></div>
+  </div>`;
+  document.getElementById('scoreSummary').innerHTML=html;
+  document.getElementById('reportMeta').textContent=`诊断时间：${new Date().toLocaleDateString('zh-CN')} | 识别 ${recs.length} 个可优化方向`;
+  
+  // Deduplicate recs
+  let seen=new Set();
+  let uniq=recs.filter(r=>{let k=r.name;if(seen.has(k))return false;seen.add(k);return true;});
+  let po={P0:0,P1:1,P2:2,管理:3};
+  uniq.sort((a,b)=>(po[a.pri]||9)-(po[b.pri]||9));
+  
+  let rh='';
+  uniq.forEach(r=>{
+    let pcl=r.pri.toLowerCase();
+    let sn=stages.find(s=>s.id===Q.find(q=>q.id===r.qid)?.s)?.name||'';
+    rh+=`<div class="recommend-item">
+      <div class="checkbox-col"><input type="checkbox" class="rec-cb" data-name="${r.name}" data-value="${r.value}" data-desc="${r.desc}" data-dev="${r.dev}" data-brands="${r.brands}" data-section="${r.section}" data-pri="${r.pri}"></div>
+      <div class="content-col">
+        <span class="rec-pri ${pcl}">${r.pri}</span><span style="font-size:10px;color:#999;margin-left:6px">${sn}</span>
+        <h4>${r.name}</h4>
+        <div class="rec-value">${r.value}</div>
+        <div class="rec-desc">${r.desc}</div>
+        <div class="rec-source">✅ 已投产：${r.brands} | 所属：${r.section}</div>
+      </div>
+    </div>`;
+  });
+  if(!uniq.length) rh='<div style="text-align:center;padding:20px;color:#086AFE;font-size:14px">🎉 整体状况良好，未识别到明显短板</div>';
+  document.getElementById('recommendations').innerHTML=rh;
+}
+
+function generateList(){
+  let cbs=document.querySelectorAll('.rec-cb:checked');
+  if(!cbs.length){alert('请先勾选需要的定开功能');return;}
+  let items=[];
+  cbs.forEach(cb=>{
+    items.push({
+      name:cb.dataset.name,
+      value:cb.dataset.value,
+      desc:cb.dataset.desc,
+      dev:cb.dataset.dev,
+      brands:cb.dataset.brands,
+      section:cb.dataset.section,
+      pri:cb.dataset.pri
+    });
+  });
+  
+  let po={P0:0,P1:1,P2:2};
+  items.sort((a,b)=>(po[a.pri]||9)-(po[b.pri]||9));
+  
+  document.getElementById('listMeta').textContent=`生成时间：${new Date().toLocaleString('zh-CN')} | 共 ${items.length} 项建议`;
+  
+  let tbl=`<table><tr><th style="width:40px">#</th><th style="width:140px">功能名称</th><th style="width:180px">业务价值</th><th>功能描述</th><th style="width:50px">优先级</th></tr>`;
+  items.forEach((it,i)=>{
+    tbl+=`<tr><td>${i+1}</td><td><strong>${it.name}</strong></td><td>${it.value}</td><td>${it.desc}</td><td style="text-align:center"><span style="display:inline-block;padding:1px 8px;border-radius:4px;font-size:10px;font-weight:700;color:#fff;background:${it.pri==='P0'?'#c00':(it.pri==='P1'?'#e86c00':'#086AFE')}">${it.pri}</span></td></tr>`;
+  });
+  tbl+='</table>';
+  document.getElementById('listTable').innerHTML=tbl;
+  document.getElementById('suggestionList').classList.remove('hidden');
+  document.getElementById('suggestionList').scrollIntoView({behavior:'smooth'});
+}
+</script>
+</body>
+</html>
