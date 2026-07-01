@@ -92,13 +92,30 @@ body{background:#f5f7fc;color:#151819;padding:20px}
 <div class="icon">🔍</div>
 <h2>入店诊断三步走</h2>
 <p>面向门店/厂端管理层，通过结构化访谈快速定位工作手机在业务流程中的痛点，自动生成定开功能建议清单。</p>
+
+<!-- Info fields -->
+<div style="background:#f5f7fc;border-radius:8px;padding:14px 20px;margin-bottom:16px;text-align:left">
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px 20px;max-width:520px;margin:0 auto">
+<div><label style="font-size:11px;font-weight:600;color:#4a4a4a;display:block;margin-bottom:2px">调研时间</label>
+<input id="fDate" type="date" style="width:100%;padding:5px 8px;border:1px solid #e0e5ef;border-radius:5px;font-size:12px"></div>
+<div><label style="font-size:11px;font-weight:600;color:#4a4a4a;display:block;margin-bottom:2px">填表人姓名</label>
+<input id="fInterviewer" type="text" style="width:100%;padding:5px 8px;border:1px solid #e0e5ef;border-radius:5px;font-size:12px" placeholder="请填写"></div>
+<div><label style="font-size:11px;font-weight:600;color:#4a4a4a;display:block;margin-bottom:2px">门店品牌</label>
+<input id="fBrand" type="text" style="width:100%;padding:5px 8px;border:1px solid #e0e5ef;border-radius:5px;font-size:12px" placeholder="例: 岚图"></div>
+<div><label style="font-size:11px;font-weight:600;color:#4a4a4a;display:block;margin-bottom:2px">门店名称</label>
+<input id="fStore" type="text" style="width:100%;padding:5px 8px;border:1px solid #e0e5ef;border-radius:5px;font-size:12px" placeholder="例: XX店"></div>
+<div><label style="font-size:11px;font-weight:600;color:#4a4a4a;display:block;margin-bottom:2px">访谈对象</label>
+<input id="fInterviewee" type="text" style="width:100%;padding:5px 8px;border:1px solid #e0e5ef;border-radius:5px;font-size:12px" placeholder="姓名"></div>
+<div><label style="font-size:11px;font-weight:600;color:#4a4a4a;display:block;margin-bottom:2px">对象岗位</label>
+<input id="fRole" type="text" style="width:100%;padding:5px 8px;border:1px solid #e0e5ef;border-radius:5px;font-size:12px" placeholder="例: 销售经理"></div>
+</div></div>
+
 <div class="intro-steps">
 <div class="intro-step"><div class="num">1</div><h4>逐板块访谈</h4><p>按8大业务板块逐一询问现状</p></div>
 <div class="intro-step"><div class="num">2</div><h4>自动评分</h4><p>系统自动打分并识别薄弱环节</p></div>
 <div class="intro-step"><div class="num">3</div><h4>生成建议清单</h4><p>勾选需要的功能，生成建议清单</p></div>
 </div>
 <button class="btn btn-primary" onclick="start()">开始诊断 →</button>
-<p style="margin-top:10px;font-size:11px;color:#aaa">约需15-20分钟 · 全程离线运行</p>
 </div></div>
 
 <!-- Questionnaire -->
@@ -129,6 +146,7 @@ body{background:#f5f7fc;color:#151819;padding:20px}
 </div>
 <div id="suggestionList" class="hidden" style="margin-top:20px;border-top:2px solid #086AFE;padding-top:16px">
 <h3 style="font-size:16px;color:#086AFE;margin-bottom:8px">📋 工作手机定开功能建议清单</h3>
+<div id="listInfo" style="background:#f5f7fc;border-radius:6px;padding:8px 12px;margin-bottom:10px;font-size:11px;color:#333;display:grid;grid-template-columns:1fr 1fr 1fr;gap:3px 16px"></div>
 <p style="font-size:12px;color:#666;margin-bottom:10px" id="listMeta"></p>
 <div id="listTable"></div>
 <button class="btn btn-secondary" style="margin-top:12px" onclick="window.print()">🖨️ 打印清单</button>
@@ -136,7 +154,7 @@ body{background:#f5f7fc;color:#151819;padding:20px}
 </div>
 
 </div>
-<div class="footer">离线诊断工具 v1.1</div>
+<div class="footer">离线诊断工具 v1.2</div>
 </div>
 
 <script>
@@ -443,6 +461,15 @@ function generateList(){
   items.sort((a,b)=>(po[a.pri]||9)-(po[b.pri]||9));
   
   document.getElementById('listMeta').textContent=`生成时间：${new Date().toLocaleString('zh-CN')} | 共 ${items.length} 项建议`;
+  // Fill info
+  let fD=document.getElementById('fDate')?.value||'',fI=document.getElementById('fInterviewer')?.value||'',fB=document.getElementById('fBrand')?.value||'',fS=document.getElementById('fStore')?.value||'',fT=document.getElementById('fInterviewee')?.value||'',fR=document.getElementById('fRole')?.value||'',iH='';
+  if(fD) iH+='<div><strong>调研时间：</strong>'+fD+'</div>';
+  if(fI) iH+='<div><strong>填表人：</strong>'+fI+'</div>';
+  if(fB) iH+='<div><strong>门店品牌：</strong>'+fB+'</div>';
+  if(fS) iH+='<div><strong>门店名称：</strong>'+fS+'</div>';
+  if(fT) iH+='<div><strong>访谈对象：</strong>'+fT+'</div>';
+  if(fR) iH+='<div><strong>对象岗位：</strong>'+fR+'</div>';
+  document.getElementById('listInfo').innerHTML=iH;
   
   let tbl=`<table><tr><th style="width:40px">#</th><th style="width:140px">功能名称</th><th style="width:180px">业务价值</th><th>功能描述</th><th style="width:50px">优先级</th></tr>`;
   items.forEach((it,i)=>{
