@@ -142,6 +142,8 @@ body{background:#f5f7fc;color:#151819;padding:20px}
 <div id="recommendations"></div>
 <div class="result-actions">
 <button class="btn btn-primary" onclick="generateList()">📋 生成建议清单</button>
+<button class="btn btn-primary" onclick="exportScoreExcel()" style="background:#217346">📥 导出评分Excel</button>
+<button class="btn btn-primary" onclick="exportSuggestionExcel()" style="background:#217346">📥 导出建议清单Excel</button>
 <button class="btn btn-secondary" onclick="restart()">🔄 重新诊断</button>
 </div>
 <div id="suggestionList" class="hidden" style="margin-top:20px;border-top:2px solid #086AFE;padding-top:16px">
@@ -154,7 +156,7 @@ body{background:#f5f7fc;color:#151819;padding:20px}
 </div>
 
 </div>
-<div class="footer">离线诊断工具 v1.2</div>
+<div class="footer">离线诊断工具 v1.3</div>
 </div>
 
 <script>
@@ -277,6 +279,7 @@ const Q = [
 // ====== APP ======
 let state = {stage:0, answers:{}};
 let gated = {virtual:false, wechat:false, mobile:false};
+let diagData = {}; // 存储诊断数据供导出使用
 
 function start(){
   document.getElementById('introScreen').classList.add('hidden');
@@ -392,6 +395,9 @@ function showResult(){
   let total=Object.values(sScores).reduce((a,b)=>a+b,0);
   let maxT=Object.values(sMax).reduce((a,b)=>a+b,0);
   let pct=Math.round(total/maxT*100);
+
+  // 存储诊断数据供导出
+  diagData = {sScores, sMax, total, maxT, pct, recs, gated: {...gated}};
   
   // Score grid
   let html='<div class="result-grid">';
@@ -479,6 +485,79 @@ function generateList(){
   document.getElementById('listTable').innerHTML=tbl;
   document.getElementById('suggestionList').classList.remove('hidden');
   document.getElementById('suggestionList').scrollIntoView({behavior:'smooth'});
+}
+
+// ====== Excel 导出功能 ======
+function getFormInfo(){
+  return {
+    date: document.getElementById('fDate')?.value||'',
+    interviewer: document.getElementById('fInterviewer')?.value||'',
+    brand: document.getElementById('fBrand')?.value||'',
+    store: document.getElementById('fStore')?.value||'',
+    interviewee: document.getElementById('fInterviewee')?.value||'',
+    role: document.getElementById('fRole')?.value||''
+  };
+}
+
+function htmlToXlsBlob(html){
+  // 生成 Excel 可打开的 HTML 文件（含 BOM 确保 Excel 正确识别编码）
+  const full = '<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns="http://www.w3.org/TR/REC-html40"><head><meta charset="UTF-8"><!--[if gte mso 9]><xml><x:ExcelWorkbook><x:ExcelWorksheets><x:ExcelWorksheet><x:Name>Sheet1</x:Name><x:WorksheetOptions><x:DisplayGridlines/></x:WorksheetOptions></x:ExcelWorksheet></x:ExcelWorksheets></x:ExcelWorkbook></xml><![endif]--></head><body>'+html+'</body></html>';
+  return new Blob(['\uFEFF'+full], {type:'application/vnd.ms-excel'});
+}
+
+function downloadBlob(blob, filename){
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
+function exportScoreExcel(){
+  if(!diagData.sScores){alert('请先完成诊断');return;}
+  const info = getFormInfo();
+  const d = diagData;
+  let html = '<h2>工作手机业务诊断 - 评分报表</h2>';
+  html += '<p>调研时间：'+(info.date||'-')+' | 填表人：'+(info.interviewer||'-')+' | 品牌：'+(info.brand||'-')+' | 门店：'+(info.store||'-')+' | 访谈对象：'+(info.interviewee||'-')+' | 岗位：'+(info.role||'-')+'</p>';
+  html += '<table border="1" cellpadding="5" cellspacing="0">';
+  html += '<tr style="background:#086AFE;color:#fff"><th>业务板块</th><th>得分</th><th>满分</th><th>得分率</th><th>健康状态</th></tr>';
+  stages.forEach(s=>{
+    let sc = d.sScores[s.id]||0, mx = d.sMax[s.id]||1;
+    let per = mx>0 ? Math.round(sc/mx*100) : 0;
+    let status;
+    if(s.id===2&&!d.gated.virtual) status='未使用';
+    else if(s.id===6&&!d.gated.wechat) status='未涉及';
+    else if(s.id===7&&!d.gated.mobile) status='未涉及';
+    else status = per>=75?'良好':(per>=40?'需优化':'薄弱');
+    let bg = status==='良好'||status==='未使用'||status==='未涉及'?'#e8f5e9':(status==='需优化'?'#fff8e1':'#ffebee');
+    html += '<tr style="background:'+bg+'"><td>'+s.name+'</td><td>'+sc+'</td><td>'+mx+'</td><td>'+per+'%</td><td>'+status+'</td></tr>';
+  });
+  html += '<tr style="font-weight:bold;background:#e8effc"><td>总体健康度</td><td>'+d.total+'</td><td>'+d.maxT+'</td><td>'+d.pct+'%</td><td>'+(d.pct>=75?'良好':(d.pct>=40?'需优化':'薄弱'))+'</td></tr>';
+  html += '</table>';
+  downloadBlob(htmlToXlsBlob(html), '诊断评分报表_'+(info.brand||'')+'_'+(info.date||'')+'.xls');
+}
+
+function exportSuggestionExcel(){
+  let cbs = document.querySelectorAll('.rec-cb:checked');
+  if(!cbs.length){alert('请先在结果页勾选需要的定开功能，再导出');return;}
+  const info = getFormInfo();
+  let items = [];
+  cbs.forEach(cb=>{items.push({name:cb.dataset.name,value:cb.dataset.value,desc:cb.dataset.desc,dev:cb.dataset.dev,brands:cb.dataset.brands,section:cb.dataset.section,pri:cb.dataset.pri});});
+  let po={P0:0,P1:1,P2:2};
+  items.sort((a,b)=>(po[a.pri]||9)-(po[b.pri]||9));
+  let html = '<h2>工作手机定开功能建议清单</h2>';
+  html += '<p>调研时间：'+(info.date||'-')+' | 填表人：'+(info.interviewer||'-')+' | 品牌：'+(info.brand||'-')+' | 门店：'+(info.store||'-')+' | 访谈对象：'+(info.interviewee||'-')+' | 岗位：'+(info.role||'-')+'</p>';
+  html += '<p>生成时间：'+new Date().toLocaleString('zh-CN')+' | 共 '+items.length+' 项建议</p>';
+  html += '<table border="1" cellpadding="5" cellspacing="0">';
+  html += '<tr style="background:#086AFE;color:#fff"><th>#</th><th>功能名称</th><th>业务价值</th><th>功能描述</th><th>定开内容</th><th>已投产品牌</th><th>所属板块</th><th>优先级</th></tr>';
+  items.forEach((it,i)=>{
+    html += '<tr><td>'+(i+1)+'</td><td>'+it.name+'</td><td>'+it.value+'</td><td>'+it.desc+'</td><td>'+it.dev+'</td><td>'+it.brands+'</td><td>'+it.section+'</td><td>'+it.pri+'</td></tr>';
+  });
+  html += '</table>';
+  downloadBlob(htmlToXlsBlob(html), '定开功能建议清单_'+(info.brand||'')+'_'+(info.date||'')+'.xls');
 }
 </script>
 </body>
